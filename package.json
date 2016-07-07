@@ -1,0 +1,33 @@
+{
+  "name": "triton-ide",
+  "version": "1.0.0",
+  "description": "http-proxy to route to ide images",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tritojs/ide.git"
+  },
+  "keywords": [
+    "ide",
+    "triton",
+    "http-proxy"
+  ],
+  "author": "Jared Allard <jaredallard@outlook.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tritojs/ide/issues"
+  },
+  "homepage": "https://github.com/tritojs/ide#readme",
+  "dependencies": {
+    "async": "^2.0.0-rc.6",
+    "cookie-parser": "^1.4.3",
+    "debug": "^2.2.0",
+    "dockerode": "^2.2.10",
+    "express": "^4.14.0",
+    "http-proxy": "^1.14.0",
+    "orchestrate": "^0.8.0"
+  }
+}
