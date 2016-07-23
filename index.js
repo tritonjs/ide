@@ -2,12 +2,30 @@
  * http-proxy to handle ide image routing.
  *
  * @author Jared Allard <jaredallard@outlook.com>
- * @version 1.0.1
+ * @version 1.1.0
  * @license MIT
  **/
 
 
 global.DNSCACHE = {};
+
+// npm modules
+const express   = require('express');
+const httpProxy = require('http-proxy');
+const debug     = require('debug')('triton:ide');
+const async     = require('async');
+const fs        = require('fs');
+
+// our libs
+const Auth      = require('./lib/auth.js');
+const Db        = require('./lib/db.js');
+const Containers = require('./lib/containers.js');
+
+// express middleware
+const cp        = require('cookie-parser');
+const error     = require('./lib/error.js');
+
+
 
 let CONFIG;
 try {
@@ -17,41 +35,27 @@ try {
   process.exit(1);
 }
 
-const express   = require('express');
-const httpProxy = require('http-proxy');
-const dockerode = require('dockerode');
-const debug     = require('debug')('triton:ide');
-const async     = require('async');
-const fs        = require('fs');
-
-const Auth      = require('./lib/auth.js');
-const Db        = require('./lib/db.js');
-
-const cp = require('cookie-parser');
+let redis_string = process.env['REDIS_1_PORT'];
+debug('redis', 'found redis on', redis_string);
 
 let dbctl = new Db(CONFIG.apikey);
 let auth  = new Auth(dbctl);
-
-
+let container = new Containers(auth, redis_string.replace('tcp://', 'redis://'));
 let app = express();
 
+// cookie-parser for determining which to use
 app.use(cp());
 
-let proxy;
-
-try {
-  proxy = httpProxy.createProxyServer({});
-} catch(e) {
-  console.error('Failed to create proxy server', e);
-}
-
-let CONTAINER_ID, CONTAINER_SHORT_ID;
+let CONTAINER_ID, CONTAINER_SHORT_ID, proxy;
 async.waterfall([
+  next => {
+    proxy = httpProxy.createProxyServer({});
+    return next();
+  },
+
   // Determine out docker id (if present.)
   next => {
-
     let raw_id = fs.readFileSync('/proc/self/cgroup', 'utf8');
-
     let id_rgx = /1[\w:\/=]+\/([\w\d]+)/g.exec(raw_id);
 
     let ID = null;
@@ -73,53 +77,21 @@ async.waterfall([
     return next();
   },
 
+  /**
+   * Setup error module.
+   **/
   next => {
-
-    // instill api normalization.
-    app.use((req, res, done) => {
-      res.error = (data, severe) => {
-        let template = null;
-
-        if(severe) {
-          template = [
-            '<h1>An Error has occurred.</h1>',
-            '<br />',
-            '<p>',
-            'We\'re deeply sorry about this, please forward this',
-            '<br />',
-            'information to ',
-            '<a href=\'mailto:jaredallard@outlook.com\'>jaredallard@outlook.com</a> ',
-            'in order',
-            '<br />',
-            'to have this issue be resolved quickly.',
-            '</p>',
-            '<br /><br />',
-            '<b>Error</b>:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
-            data,
-            '<br />',
-            '<b>Container</b>: ',
-            CONTAINER_SHORT_ID
-          ];
-        } else {
-          template = [
-            '<b>',
-            data,
-            '</b>',
-            '<br /><br />',
-            'CID: ',
-            CONTAINER_SHORT_ID
-          ];
-        }
-
-        res.send(template.join(''));
-      }
-
-      return done();
-    })
-
+    app.use(error(debug, {
+      short: CONTAINER_SHORT_ID,
+      long: CONTAINER_ID
+    }));
     return next();
   },
 
+  /**
+   * Obtain the container information from the abstraction library
+   * and then forward the requests.
+   **/
   next => {
     app.use((req, res) => {
       let apikey = req.cookies.triton_apikey;
@@ -130,47 +102,14 @@ async.waterfall([
         return res.error('Invalid Authentication, please try logging in again.');
       }
 
-      let done = (CACHED_OBJ) => {
-        console.log('proxy', CACHED_OBJ.ip)
+      container.fetch(name, (container) => {
         return proxy.web(req, res, {
-          target: CACHED_OBJ.ip
+          target: 'http://'+container.ip
         }, () => {
           debug('workspace wasn\'t available.')
           return res.error('Workspace Not Available (Is it running?)')
         });
-      };
-
-      if(!global.DNSCACHE[name]) {
-        auth.getUserObject(name)
-        .then(user => {
-          let O = user[0].value;
-
-          if(!O.docker) {
-            return res.error('Workspace hasn\'t been created for this user yet.');
-          }
-
-          let IP = O.docker.ip;
-
-          if(IP === null) {
-            return res.error('Docker container not assigned but marked valid.', true)
-          }
-
-          // create a new object in the "dns" cache.
-          debug('proxy', name, '->', IP);
-          global.DNSCACHE[name] = {
-            ip: 'http://'+IP,
-            success: true
-          }
-
-          return done(global.DNSCACHE[name]);
-        })
-        .catch(() => {
-          global.DNSCACHE[name]
-          return res.error('Failed to Resolve Workspace', true);
-        })
-      } else {
-        return done(global.DNSCACHE[name]);
-      }
+      });
     });
 
     return next();
@@ -180,6 +119,7 @@ async.waterfall([
     console.error(err);
     return process.exit(1);
   }
+
   debug('listening on port', CONFIG.port);
   app.listen(CONFIG.port);
 })

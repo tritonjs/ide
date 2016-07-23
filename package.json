@@ -28,6 +28,7 @@
     "dockerode": "^2.2.10",
     "express": "^4.14.0",
     "http-proxy": "^1.14.0",
+    "ioredis": "^2.2.0",
     "orchestrate": "^0.8.0"
   }
 }

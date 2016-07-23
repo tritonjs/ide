@@ -36,7 +36,7 @@
     "no-sync": 2,
     /* Stylistic Issues */
     "no-mixed-spaces-and-tabs": 2,
-    "no-underscore-dangle": 2,
+    "no-underscore-dangle": 0,
     "quotes": [1, "single", "avoid-escape"],
   },
   "extends": "eslint:recommended"
