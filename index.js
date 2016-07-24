@@ -40,8 +40,10 @@ debug('redis', 'found redis on', redis_string);
 
 let dbctl = new Db(CONFIG.apikey);
 let auth  = new Auth(dbctl);
-let container = new Containers(auth, redis_string.replace('tcp://', 'redis://'));
+let container = new Containers(auth, redis_string.replace('tcp://', 'redis://'), true);
 let app = express();
+
+container.stream();
 
 // cookie-parser for determining which to use
 app.use(cp());
@@ -106,7 +108,12 @@ async.waterfall([
         return proxy.web(req, res, {
           target: 'http://'+container.ip
         }, () => {
-          debug('workspace wasn\'t available.')
+          debug('workspace wasn\'t available. IP:', container.ip);
+
+          if(!container.ip) {
+            debug('workspace container ip not helpful, here\'s container:', container);
+          }
+          
           return res.error('Workspace Not Available (Is it running?)')
         });
       });
