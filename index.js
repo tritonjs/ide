@@ -35,12 +35,9 @@ try {
   process.exit(1);
 }
 
-let redis_string = process.env['REDIS_1_PORT'];
-debug('redis', 'found redis on', redis_string);
-
-let dbctl = new Db(CONFIG.apikey);
+let dbctl = new Db(CONFIG);
 let auth  = new Auth(dbctl);
-let container = new Containers(auth, redis_string.replace('tcp://', 'redis://'), true);
+let container = new Containers(auth, true);
 let app = express();
 
 container.stream();
@@ -55,7 +52,7 @@ async.waterfall([
     return next();
   },
 
-  // Determine out docker id (if present.)
+  // Determine our docker id (if present.)
   next => {
     let raw_id = fs.readFileSync('/proc/self/cgroup', 'utf8');
     let id_rgx = /1[\w:\/=]+\/([\w\d]+)/g.exec(raw_id);
@@ -113,7 +110,7 @@ async.waterfall([
           if(!container.ip) {
             debug('workspace container ip not helpful, here\'s container:', container);
           }
-          
+
           return res.error('Workspace Not Available (Is it running?)')
         });
       });
