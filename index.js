@@ -26,7 +26,6 @@ const cp        = require('cookie-parser');
 const error     = require('./lib/error.js');
 
 
-
 let CONFIG;
 try {
   CONFIG = require('./config/config.json');
@@ -92,8 +91,12 @@ async.waterfall([
    * and then forward the requests.
    **/
   next => {
+    app.get('/healthcheck', (req, res) => {
+      return res.status(200).send('OK')
+    });
+
     app.use((req, res) => {
-      let apikey = req.cookies.triton_apikey;
+      let apikey = req.cookies.triton_userapikey;
       let name   = req.cookies.triton_username;
 
       if(!apikey || !name) {
@@ -102,14 +105,22 @@ async.waterfall([
       }
 
       container.fetch(name, (container) => {
+        if(apikey !== container.auth) {
+          debug('AUTH_INVALID', apikey, '=/=', container.auth)
+          debug('CONTAINER', container);
+          return res.error('Invalid Authentication, please try logging in again.', false, 401)
+        }
+
         return proxy.web(req, res, {
           target: 'http://'+container.ip
-        }, () => {
+        }, err => {
           debug('workspace wasn\'t available. IP:', container.ip);
 
           if(!container.ip) {
             debug('workspace container ip not helpful, here\'s container:', container);
           }
+
+          debug('here\'s container for auth check', container);
 
           return res.error('Workspace Not Available (Is it running?)')
         });

@@ -1,14 +1,16 @@
 FROM mhart/alpine-node:6.3.0
 
+# native modules.
+RUN apk add --update --no-cache make gcc g++ python
+RUN apk add git bash
+RUN npm install -g pm2
+
 # Add our files & set working dir
 ADD . /ide
 WORKDIR /ide
 
-# native modules.
-RUN apk add --update --no-cache make gcc g++ python
-
+RUN chmod +x /ide/serviceinit.sh
 RUN npm install
-RUN npm install -g nodemon
 
 # Environment variables
 ENV DEBUG *,-nodemon:*,-nodemon,-express:*,-ioredis:*
@@ -17,4 +19,4 @@ ENV TERM xterm
 
 EXPOSE 80
 
-CMD ["nodemon", "npm", "start"]
+CMD ["./serviceinit.sh"]
