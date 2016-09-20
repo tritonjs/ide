@@ -1,0 +1,15 @@
+{
+  "db": {
+    "host": "<env>",
+    "port": 8529,
+    "name": "triton",
+    "user": "root",
+    "password": "Q2w3YEpr84U955sd",
+
+    "collections": [
+      "users",
+      "assignments"
+    ]
+  },
+  "port": 80
+}
