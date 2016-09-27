@@ -11,5 +11,7 @@
       "assignments"
     ]
   },
+  "debug": true,
+  "colors": true,
   "port": 80
 }

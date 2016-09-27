@@ -9,6 +9,24 @@
 
 global.DNSCACHE = {};
 
+let CONFIG;
+try {
+  CONFIG = require('./config/config.json')
+} catch(e) {
+  console.log('Error:', 'no config found. (./config/config.json)');
+  console.log('Stack Trace:', e);
+  process.exit(1)
+}
+
+if(CONFIG.debug === undefined || CONFIG.debug === true) {
+  process.env.DEBUG = 'backend:*,workspace:*,triton:*'
+  process.env.TERM = 'xterm'
+}
+
+if(CONFIG.colors) {
+  process.env.DEBUG_COLORS = '1'
+}
+
 // npm modules
 const express   = require('express');
 const httpProxy = require('http-proxy');
@@ -24,15 +42,6 @@ const Containers = require('./lib/containers.js');
 // express middleware
 const cp        = require('cookie-parser');
 const error     = require('./lib/error.js');
-
-
-let CONFIG;
-try {
-  CONFIG = require('./config/config.json');
-} catch(e) {
-  console.error('Failed to load config', e);
-  process.exit(1);
-}
 
 let dbctl = new Db(CONFIG);
 let auth  = new Auth(dbctl);
@@ -105,9 +114,12 @@ async.waterfall([
       }
 
       container.fetch(name, (container) => {
+        if(!container.auth) container.auth = container.apikey; // terminology debate.
+        
         if(apikey !== container.auth) {
           debug('AUTH_INVALID', apikey, '=/=', container.auth)
           debug('CONTAINER', container);
+          debug('rejected invalid auth')
           return res.error('Invalid Authentication, please try logging in again.', false, 401)
         }
 
