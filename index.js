@@ -148,6 +148,12 @@ async.waterfall([
   next => {
     let webproxy = express();
 
+    webproxy.use(cp());
+    webproxy.use(error(debug, {
+      short: CONTAINER_SHORT_ID,
+      long: CONTAINER_ID
+    }));
+
     app.use((req, res, done) => {
       let apikey = req.cookies.triton_userapikey;
       let name   = req.cookies.triton_username;
@@ -173,6 +179,7 @@ async.waterfall([
             port: 8080
           }
         }, err => {
+          debug('webproxy', 'failed to connect to service');
           return res.error('Failed to proxy service :(')
         });
       });
@@ -186,6 +193,12 @@ async.waterfall([
 
   next => {
     let idewsproxy = express();
+
+    idewsproxy.use(cp())
+    idewsproxy.use(error(debug, {
+      short: CONTAINER_SHORT_ID,
+      long: CONTAINER_ID
+    }));
 
     app.use((req, res, done) => {
       let apikey = req.cookies.triton_userapikey;
