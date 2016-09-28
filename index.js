@@ -115,7 +115,7 @@ async.waterfall([
 
       container.fetch(name, (container) => {
         if(!container.auth) container.auth = container.apikey; // terminology debate.
-        
+
         if(apikey !== container.auth) {
           debug('AUTH_INVALID', apikey, '=/=', container.auth)
           debug('CONTAINER', container);
@@ -124,7 +124,10 @@ async.waterfall([
         }
 
         return proxy.web(req, res, {
-          target: 'http://'+container.ip
+          target: {
+            host: container.ip,
+            port: 80
+          }
         }, err => {
           debug('workspace wasn\'t available. IP:', container.ip);
 
@@ -140,6 +143,85 @@ async.waterfall([
     });
 
     return next();
+  },
+
+  next => {
+    let webproxy = express();
+
+    app.use((req, res, done) => {
+      let apikey = req.cookies.triton_userapikey;
+      let name   = req.cookies.triton_username;
+
+      if(!apikey || !name) {
+        debug('rejected request for workspace without apikey and/or username')
+        return res.error('Invalid Authentication, please try logging in again.');
+      }
+
+      container.fetch(name, (container) => {
+        if(!container.auth) container.auth = container.apikey; // terminology debate.
+
+        if(apikey !== container.auth) {
+          debug('AUTH_INVALID', apikey, '=/=', container.auth)
+          debug('CONTAINER', container);
+          debug('rejected invalid auth')
+          return res.error('Invalid Authentication, please try logging in again.', false, 401)
+        }
+
+        return proxy.web(req, res, {
+          target: {
+            host: container.ip,
+            port: 8080
+          }
+        }, err => {
+          return res.error('Failed to proxy service :(')
+        });
+      });
+    })
+
+    webproxy.listen(8080, () => {
+      debug('webproxy', 'listening on *:8080')
+      return next();
+    });
+  },
+
+  next => {
+    let idewsproxy = express();
+
+    app.use((req, res, done) => {
+      let apikey = req.cookies.triton_userapikey;
+      let name   = req.cookies.triton_username;
+
+      if(!apikey || !name) {
+        debug('rejected request for workspace without apikey and/or username')
+        return res.error('Invalid Authentication, please try logging in again.');
+      }
+
+      container.fetch(name, (container) => {
+        if(!container.auth) container.auth = container.apikey; // terminology debate.
+
+        if(apikey !== container.auth) {
+          debug('AUTH_INVALID', apikey, '=/=', container.auth)
+          debug('CONTAINER', container);
+          debug('rejected invalid auth')
+          return res.error('Invalid Authentication, please try logging in again.', false, 401)
+        }
+
+        return proxy.ws(req, res, {
+          target: {
+            host: container.ip,
+            port: 3000
+          }
+        }, err => {
+          return res.send('FAIL')
+        });
+      });
+    })
+
+    idewsproxy.listen(3000, () => {
+      debug('idewsproxy', 'listening on *:3000');
+
+      return next();
+    });
   }
 ], err => {
   if(err) {
