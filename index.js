@@ -154,7 +154,7 @@ async.waterfall([
       long: CONTAINER_ID
     }));
 
-    app.use((req, res, done) => {
+    webproxy.use((req, res, done) => {
       let apikey = req.cookies.triton_userapikey;
       let name   = req.cookies.triton_username;
 
@@ -200,7 +200,7 @@ async.waterfall([
       long: CONTAINER_ID
     }));
 
-    app.use((req, res, done) => {
+    idewsproxy.use((req, res, done) => {
       let apikey = req.cookies.triton_userapikey;
       let name   = req.cookies.triton_username;
 
