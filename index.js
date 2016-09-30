@@ -56,7 +56,9 @@ app.use(cp());
 let CONTAINER_ID, CONTAINER_SHORT_ID, proxy;
 async.waterfall([
   next => {
-    proxy = httpProxy.createProxyServer({});
+    proxy = httpProxy.createProxyServer({
+       ws: true
+    });
     return next();
   },
 
