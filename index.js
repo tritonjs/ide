@@ -53,12 +53,14 @@ container.stream();
 // cookie-parser for determining which to use
 app.use(cp());
 
+let wsproxy;
 let CONTAINER_ID, CONTAINER_SHORT_ID, proxy;
 async.waterfall([
   next => {
-    proxy = httpProxy.createProxyServer({
-       ws: true
-    });
+    proxy = httpProxy.createProxyServer({});
+    wsproxy = httpProxy.createProxyServer({
+      ws: true
+    })
     return next();
   },
 
@@ -221,9 +223,10 @@ async.waterfall([
           return res.error('Invalid Authentication, please try logging in again.', false, 401)
         }
 
-        return proxy.ws(req, res, {
+        debug('wsproxy', 'proxy to websocket', container.ip, ':3000')
+        return wsproxy.ws(req, res, {
           target: {
-            host: container.ip,
+            host: 'ws://'+container.ip,
             port: 3000
           }
         }, err => {
