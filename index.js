@@ -61,6 +61,24 @@ async.waterfall([
     wsproxy = httpProxy.createProxyServer({
       ws: true
     })
+
+    proxy.on('error', function (err, req, res) {
+      res.writeHead(500, {
+        'Content-Type': 'text/plain'
+      });
+
+      debug('proxy:err', err);
+      res.end('Something went wrong. And we are reporting a custom error message.');
+    });
+
+    wsproxy.on('error', function (err, req, res) {
+      res.writeHead(500, {
+        'Content-Type': 'text/plain'
+      });
+
+      debug('wsproxy:err', err);
+      res.end('Something went wrong. And we are reporting a custom error message.');
+    });
     return next();
   },
 
