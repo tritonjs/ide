@@ -145,6 +145,10 @@ async.waterfall([
           return res.error('Invalid Authentication, please try logging in again.', false, 401)
         }
 
+        proxyServer.on('upgrade', function (req, socket, head) {
+          proxy.ws(req, socket, head);
+        });
+
         return proxy.web(req, res, {
           target: {
             host: container.ip,
@@ -162,6 +166,15 @@ async.waterfall([
           return res.error('Workspace Not Available (Is it running?)')
         });
       });
+    });
+
+    debug('listening on port', CONFIG.port);
+    let appserver = require('http').createServer(app);
+    appserver.listen(CONFIG.port);
+
+    proxyServer.on('upgrade', (req, socket, head) => {
+      debug('ws', req);
+      proxy.ws(req, socket, head);
     });
 
     return next();
@@ -264,7 +277,4 @@ async.waterfall([
     console.error(err);
     return process.exit(1);
   }
-
-  debug('listening on port', CONFIG.port);
-  app.listen(CONFIG.port);
 })
