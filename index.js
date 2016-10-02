@@ -123,6 +123,7 @@ async.waterfall([
    **/
   next => {
     app.get('/healthcheck', (req, res) => {
+      // TODO: Check health here.
       return res.status(200).send('OK')
     });
 
@@ -166,12 +167,12 @@ async.waterfall([
 
     debug('listening on port', CONFIG.port);
     let appserver = require('http').createServer(app);
-    appserver.listen(CONFIG.port);
-
     appserver.on('upgrade', (req, socket, head) => {
-      debug('ws', req);
+      debug('ws', req.cookies);
       proxy.ws(req, socket, head);
     });
+
+        appserver.listen(CONFIG.port);
 
     return next();
   },
