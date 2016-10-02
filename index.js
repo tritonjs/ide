@@ -145,10 +145,6 @@ async.waterfall([
           return res.error('Invalid Authentication, please try logging in again.', false, 401)
         }
 
-        proxyServer.on('upgrade', function (req, socket, head) {
-          proxy.ws(req, socket, head);
-        });
-
         return proxy.web(req, res, {
           target: {
             host: container.ip,
@@ -172,7 +168,7 @@ async.waterfall([
     let appserver = require('http').createServer(app);
     appserver.listen(CONFIG.port);
 
-    proxyServer.on('upgrade', (req, socket, head) => {
+    appserver.on('upgrade', (req, socket, head) => {
       debug('ws', req);
       proxy.ws(req, socket, head);
     });
