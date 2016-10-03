@@ -163,7 +163,7 @@ async.waterfall([
 
         rc && rc.split(';').forEach(cookie => {
           let parts = cookie.split('=');
-          list[parts.shift().trim()] = decodeURI(parts.join('=')).replace(/%3/g, ':'); // quick hack to replace %3 with :
+          list[parts.shift().trim()] = decodeURI(parts.join('=')).replace(/%3A/g, ':'); // quick hack to replace %3 with :
         });
 
         return list;
