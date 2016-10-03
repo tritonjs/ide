@@ -168,11 +168,49 @@ async.waterfall([
     debug('listening on port', CONFIG.port);
     let appserver = require('http').createServer(app);
     appserver.on('upgrade', (req, socket, head) => {
-      cp(req, {}, (req, res) => {
-        debug('cookie-parser', 'finished');
-        console.log(req.cookies);
-      })
-      proxy.ws(req, socket, head);
+      let parseCookies = request => {
+        const list = {},
+              rc = request.headers.cookie;
+
+        rc && rc.split(';').forEach(cookie => {
+          let parts = cookie.split('=');
+          list[parts.shift().trim()] = decodeURI(parts.join('='));
+        });
+
+        return list;
+      }
+
+      let cookies = parseCookies(req);
+      let name    = cookies.triton_username;
+      let apikey  = cookies.triton_userapikey;
+
+      container.fetch(name, (container) => {
+        if(!container.auth) container.auth = container.apikey; // terminology debate.
+
+        if(apikey !== container.auth) {
+          debug('AUTH_INVALID', apikey, '=/=', container.auth)
+          debug('CONTAINER', container);
+          debug('rejected invalid auth')
+          return res.error('Invalid Authentication, please try logging in again.', false, 401)
+        }
+
+        return proxy.web(req, res, {
+          target: {
+            host: container.ip,
+            port: 80
+          }
+        }, err => {
+          debug('workspace wasn\'t available. IP:', container.ip);
+
+          if(!container.ip) {
+            debug('workspace container ip not helpful, here\'s container:', container);
+          }
+
+          debug('here\'s container for auth check', container);
+
+          return res.error('Workspace Not Available (Is it running?)')
+        });
+      });
     });
 
         appserver.listen(CONFIG.port);
