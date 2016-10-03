@@ -67,7 +67,7 @@ async.waterfall([
       debug('proxy:err', err);
       res.end('Something went wrong. And we are reporting a custom error message.');
     });
-    
+
     return next();
   },
 
@@ -163,7 +163,7 @@ async.waterfall([
 
         rc && rc.split(';').forEach(cookie => {
           let parts = cookie.split('=');
-          list[parts.shift().trim()] = decodeURI(parts.join('='));
+          list[parts.shift().trim()] = decodeURI(parts.join('=')).replace(/%3/g, ':'); // quick hack to replace %3 with :
         });
 
         return list;
@@ -180,10 +180,12 @@ async.waterfall([
           debug('AUTH_INVALID', apikey, '=/=', container.auth)
           debug('CONTAINER', container);
           debug('rejected invalid auth')
-          return res.error('Invalid Authentication, please try logging in again.', false, 401)
+          return;
         }
 
         let target = 'ws://'+container.ip+':3000';
+
+        debug('websocker', 'upgrade target ->', target)
         let wsproxy = httpProxy.createProxyServer({
           target: target,
           ws: true
