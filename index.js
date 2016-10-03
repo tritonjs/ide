@@ -58,9 +58,6 @@ let CONTAINER_ID, CONTAINER_SHORT_ID, proxy;
 async.waterfall([
   next => {
     proxy = httpProxy.createProxyServer({});
-    wsproxy = httpProxy.createProxyServer({
-      ws: true
-    })
 
     proxy.on('error', function (err, req, res) {
       res.writeHead(500, {
@@ -194,26 +191,17 @@ async.waterfall([
           return res.error('Invalid Authentication, please try logging in again.', false, 401)
         }
 
-        return proxy.web(req, res, {
-          target: {
-            host: container.ip,
-            port: 80
-          }
-        }, err => {
-          debug('workspace wasn\'t available. IP:', container.ip);
-
-          if(!container.ip) {
-            debug('workspace container ip not helpful, here\'s container:', container);
-          }
-
-          debug('here\'s container for auth check', container);
-
-          return res.error('Workspace Not Available (Is it running?)')
+        let target = 'ws://'+container.ip+':3000';
+        let wsproxy = httpProxy.createProxyServer({
+          target: target,
+          ws: true
         });
+
+        wsproxy.ws(req, socket, head);
       });
     });
 
-        appserver.listen(CONFIG.port);
+    appserver.listen(CONFIG.port);
 
     return next();
   },
@@ -283,6 +271,7 @@ async.waterfall([
       }
 
       container.fetch(name, (container) => {
+
         if(!container.auth) container.auth = container.apikey; // terminology debate.
 
         if(apikey !== container.auth) {
