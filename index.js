@@ -168,7 +168,10 @@ async.waterfall([
     debug('listening on port', CONFIG.port);
     let appserver = require('http').createServer(app);
     appserver.on('upgrade', (req, socket, head) => {
-      debug('ws', req.cookies);
+      cp(req, {}, (req, res) => {
+        debug('cookie-parser', 'finished');
+        console.log(req.cookies);
+      })
       proxy.ws(req, socket, head);
     });
 
