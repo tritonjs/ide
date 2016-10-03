@@ -183,7 +183,7 @@ async.waterfall([
           return;
         }
 
-        let target = 'ws://'+container.ip+':3000';
+        let target = 'ws://'+container.ip+':80';
 
         debug('websocker', 'upgrade target ->', target)
         let wsproxy = httpProxy.createProxyServer({
@@ -242,54 +242,6 @@ async.waterfall([
 
     webproxy.listen(8080, () => {
       debug('webproxy', 'listening on *:8080')
-      return next();
-    });
-  },
-
-  next => {
-    let idewsproxy = express();
-
-    idewsproxy.use(cp())
-    idewsproxy.use(error(debug, {
-      short: CONTAINER_SHORT_ID,
-      long: CONTAINER_ID
-    }));
-
-    idewsproxy.use((req, res, done) => {
-      let apikey = req.cookies.triton_userapikey;
-      let name   = req.cookies.triton_username;
-
-      if(!apikey || !name) {
-        debug('rejected request for workspace without apikey and/or username')
-        return res.error('Invalid Authentication, please try logging in again.');
-      }
-
-      container.fetch(name, (container) => {
-
-        if(!container.auth) container.auth = container.apikey; // terminology debate.
-
-        if(apikey !== container.auth) {
-          debug('AUTH_INVALID', apikey, '=/=', container.auth)
-          debug('CONTAINER', container);
-          debug('rejected invalid auth')
-          return res.error('Invalid Authentication, please try logging in again.', false, 401)
-        }
-
-        debug('wsproxy', 'proxy to websocket', container.ip, ':3000')
-        return wsproxy.ws(req, res, {
-          target: {
-            host: 'ws://'+container.ip,
-            port: 3000
-          }
-        }, err => {
-          return res.send('FAIL')
-        });
-      });
-    })
-
-    idewsproxy.listen(3000, () => {
-      debug('idewsproxy', 'listening on *:3000');
-
       return next();
     });
   }
