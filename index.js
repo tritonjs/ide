@@ -23,9 +23,8 @@ if(CONFIG.debug === undefined || CONFIG.debug === true) {
   process.env.TERM = 'xterm'
 }
 
-if(CONFIG.colors) {
-  process.env.DEBUG_COLORS = '1'
-}
+// HACK: Enables debug colors in containers.
+if(CONFIG.colors) process.env.DEBUG_COLORS = '1'
 
 // npm modules
 const express   = require('express');
@@ -84,9 +83,7 @@ async.waterfall([
       ID = id_rgx[1];
     }
 
-    if(!ID) {
-      console.error('Failed to determine the ID of the container');
-    }
+    if(!ID) console.error('Failed to determine the ID of the container');
 
     debug('container id:', ID);
     CONTAINER_ID = ID;
